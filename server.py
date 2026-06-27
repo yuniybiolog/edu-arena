@@ -1,19 +1,12 @@
 import sqlite3
-import bcrypt
-import jwt
+import hashlib
 import os
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-import socketio
-import uvicorn
-
-app = FastAPI()
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
-socket_app = socketio.ASGIApp(sio, other_app=app)
+import json
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
 
 db = sqlite3.connect('arena.db', check_same_thread=False)
-db.row_factory = sqlite3.Row
+db.execute("PRAGMA journal_mode=WAL")
 db.executescript("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,8 +14,7 @@ db.executescript("""
         password TEXT,
         omega INTEGER DEFAULT 500,
         kappa INTEGER DEFAULT 2,
-        rating INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        rating INTEGER DEFAULT 0
     );
     CREATE TABLE IF NOT EXISTS tasks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,137 +39,105 @@ db.executescript("""
     );
 """)
 
-JWT_SECRET = 'hilbert-space-secret-2024'
-
-def get_user_from_token(request: Request):
-    auth = request.headers.get('Authorization', '')
-    if not auth.startswith('Bearer '):
-        raise HTTPException(401, 'Нет токена')
-    try:
-        token = auth.split(' ')[1]
-        return jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-    except:
-        raise HTTPException(401, 'Неверный токен')
-
-@app.get("/")
-async def index():
-    return FileResponse('public/index.html')
-
-@app.get("/register")
-async def register_page():
-    return FileResponse('public/register.html')
-
-@app.get("/login")
-async def login_page():
-    return FileResponse('public/login.html')
-
-@app.get("/resources")
-async def resources_page():
-    return FileResponse('public/resources.html')
-
-@app.post("/api/register")
-async def api_register(request: Request):
-    data = await request.json()
-    username = data['username']
-    password = data['password']
-    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-    try:
-        db.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hashed))
-        db.commit()
-        user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-        token = jwt.encode({'id': user['id'], 'username': username}, JWT_SECRET, algorithm='HS256')
-        return {'token': token, 'omega': user['omega'], 'kappa': user['kappa']}
-    except sqlite3.IntegrityError:
-        raise HTTPException(400, 'Пользователь уже существует')
-
-@app.post("/api/login")
-async def api_login(request: Request):
-    data = await request.json()
-    username = data['username']
-    password = data['password']
-    user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-    if user and bcrypt.checkpw(password.encode(), user['password']):
-        token = jwt.encode({'id': user['id'], 'username': username}, JWT_SECRET, algorithm='HS256')
-        return {'token': token, 'omega': user['omega'], 'kappa': user['kappa'], 'rating': user['rating']}
-    raise HTTPException(401, 'Неверный логин или пароль')
-
-@app.get("/api/balance")
-async def api_balance(request: Request):
-    user_data = get_user_from_token(request)
-    user = db.execute('SELECT omega, kappa, rating FROM users WHERE id = ?', (user_data['id'],)).fetchone()
-    return {'omega': user['omega'], 'kappa': user['kappa'], 'rating': user['rating']}
-
-@app.get("/api/tasks")
-async def api_tasks(request: Request):
-    get_user_from_token(request)
-    tasks = db.execute('SELECT * FROM tasks ORDER BY id DESC').fetchall()
-    return [dict(t) for t in tasks]
-
-@app.post("/api/tasks/check")
-async def api_tasks_check(request: Request):
-    user_data = get_user_from_token(request)
-    data = await request.json()
-    task_id = data['taskId']
-    answer = data['answer']
-    task = db.execute('SELECT * FROM tasks WHERE id = ?', (task_id,)).fetchone()
-    if not task:
-        raise HTTPException(404, 'Задача не найдена')
-    if task['answer'].lower() == answer.lower():
-        db.execute('UPDATE users SET omega = omega + ?, kappa = kappa + ?, rating = rating + 10 WHERE id = ?',
-                   (task['reward_omega'], task['reward_kappa'], user_data['id']))
-        db.commit()
-        user = db.execute('SELECT omega, kappa FROM users WHERE id = ?', (user_data['id'],)).fetchone()
-        await sio.emit('notification', {'message': f"{user_data['username']} решил \"{task['title']}\"!"})
-        return {'correct': True, 'omega': user['omega'], 'kappa': user['kappa']}
-    return {'correct': False}
-
-@app.get("/api/forum")
-async def api_forum(request: Request):
-    get_user_from_token(request)
-    posts = db.execute('SELECT fp.*, u.username FROM forum_posts fp JOIN users u ON fp.user_id = u.id ORDER BY fp.created_at DESC').fetchall()
-    return [dict(p) for p in posts]
-
-@app.post("/api/forum")
-async def api_forum_post(request: Request):
-    user_data = get_user_from_token(request)
-    data = await request.json()
-    cursor = db.execute('INSERT INTO forum_posts (user_id, content) VALUES (?, ?)', (user_data['id'], data['content']))
-    db.commit()
-    post = db.execute('SELECT fp.*, u.username FROM forum_posts fp JOIN users u ON fp.user_id = u.id WHERE fp.id = ?', (cursor.lastrowid,)).fetchone()
-    await sio.emit('new_post', dict(post))
-    return dict(post)
-
-@sio.event
-async def connect(sid, environ):
-    print(f'Подключился: {sid}')
-
-@sio.event
-async def chat(sid, data):
-    try:
-        user = jwt.decode(data['token'], JWT_SECRET, algorithms=['HS256'])
-        db.execute('INSERT INTO messages (user_id, message) VALUES (?, ?)', (user['id'], data['message']))
-        db.commit()
-        await sio.emit('chat', {'username': user['username'], 'message': data['message']})
-    except:
-        pass
-
-@sio.event
-async def disconnect(sid):
-    print(f'Отключился: {sid}')
-
-# Тестовые задачи (после всех функций!)
+# Тестовые задачи
 tasks_list = [
-    ('Квантовая механика', 'Чему равна постоянная Планка? (только число × 10^-34)', 'hard', 50, 1, '6.626'),
+    ('Квантовая механика', 'Чему равна постоянная Планка? (число × 10^-34)', 'hard', 50, 1, '6.626'),
     ('Математика', 'Определитель единичной матрицы 3x3?', 'easy', 10, 0, '1'),
     ('Логика', 'Все A есть B, все B есть C → все A есть C. Это?', 'medium', 20, 0, 'силлогизм'),
     ('Геометрия', 'Сколько измерений в Гильбертовом пространстве?', 'hard', 100, 3, 'бесконечно'),
-    ('Физика', 'Кто предложил волновое уравнение ψ(x,t)?', 'medium', 30, 1, 'шредингер')
+    ('Физика', 'Волновое уравнение ψ(x,t)? Кто предложил?', 'medium', 30, 1, 'шредингер')
 ]
 
-count = db.execute('SELECT COUNT(*) as c FROM tasks').fetchone()
-if count['c'] == 0:
+count = db.execute('SELECT COUNT(*) as c FROM tasks').fetchone()[0]
+if count == 0:
     db.executemany('INSERT INTO tasks (title, description, difficulty, reward_omega, reward_kappa, answer) VALUES (?, ?, ?, ?, ?, ?)', tasks_list)
     db.commit()
 
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        path = urlparse(self.path).path
+        
+        if path == '/' or path == '/register' or path == '/login' or path == '/resources':
+            filename = 'public/index.html' if path == '/' else f'public{path}.html'
+            try:
+                with open(filename, 'rb') as f:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/html; charset=utf-8')
+                    self.end_headers()
+                    self.wfile.write(f.read())
+            except:
+                self.send_error(404)
+        elif path.startswith('/api/'):
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            
+            if path == '/api/tasks':
+                tasks = db.execute('SELECT * FROM tasks ORDER BY id DESC').fetchall()
+                result = [{'id': t[0], 'title': t[1], 'description': t[2], 'difficulty': t[3], 'reward_omega': t[4], 'reward_kappa': t[5]} for t in tasks]
+                self.wfile.write(json.dumps(result).encode())
+            elif path == '/api/forum':
+                posts = db.execute('SELECT fp.*, u.username FROM forum_posts fp JOIN users u ON fp.user_id = u.id ORDER BY fp.created_at DESC').fetchall()
+                result = [{'id': p[0], 'user_id': p[1], 'content': p[2], 'created_at': p[3], 'username': p[4]} for p in posts]
+                self.wfile.write(json.dumps(result).encode())
+            else:
+                self.wfile.write(b'{}')
+        else:
+            self.send_error(404)
+    
+    def do_POST(self):
+        content_length = int(self.headers['Content-Length'])
+        body = json.loads(self.rfile.read(content_length))
+        path = urlparse(self.path).path
+        
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        
+        if path == '/api/register':
+            username = body['username']
+            password = hashlib.sha256(body['password'].encode()).hexdigest()
+            try:
+                db.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
+                db.commit()
+                user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+                self.wfile.write(json.dumps({'token': str(user[0]), 'omega': user[3], 'kappa': user[4]}).encode())
+            except:
+                self.wfile.write(json.dumps({'error': 'Пользователь существует'}).encode())
+        
+        elif path == '/api/login':
+            username = body['username']
+            password = hashlib.sha256(body['password'].encode()).hexdigest()
+            user = db.execute('SELECT * FROM users WHERE username = ? AND password = ?', (username, password)).fetchone()
+            if user:
+                self.wfile.write(json.dumps({'token': str(user[0]), 'omega': user[3], 'kappa': user[4], 'rating': user[5]}).encode())
+            else:
+                self.wfile.write(json.dumps({'error': 'Неверный логин или пароль'}).encode())
+        
+        elif path == '/api/tasks/check':
+            task_id = body['taskId']
+            answer = body['answer']
+            user_id = int(body.get('token', 0))
+            task = db.execute('SELECT * FROM tasks WHERE id = ?', (task_id,)).fetchone()
+            if task and task[6].lower() == answer.lower():
+                db.execute('UPDATE users SET omega = omega + ?, kappa = kappa + ?, rating = rating + 10 WHERE id = ?', (task[4], task[5], user_id))
+                db.commit()
+                user = db.execute('SELECT omega, kappa FROM users WHERE id = ?', (user_id,)).fetchone()
+                self.wfile.write(json.dumps({'correct': True, 'omega': user[0], 'kappa': user[1]}).encode())
+            else:
+                self.wfile.write(json.dumps({'correct': False}).encode())
+        
+        elif path == '/api/forum':
+            user_id = int(body.get('token', 0))
+            content = body['content']
+            db.execute('INSERT INTO forum_posts (user_id, content) VALUES (?, ?)', (user_id, content))
+            db.commit()
+            self.wfile.write(json.dumps({'success': True}).encode())
+        
+        else:
+            self.wfile.write(b'{}')
+
 PORT = int(os.environ.get('PORT', 3000))
-uvicorn.run(socket_app, host='0.0.0.0', port=PORT)
+server = HTTPServer(('0.0.0.0', PORT), Handler)
+print(f'🧠 Hilbert Space запущен на порту {PORT}')
+server.serve_forever()

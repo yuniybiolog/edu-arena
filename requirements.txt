@@ -1,6 +1,1 @@
-fastapi
-uvicorn
-bcrypt
-pyjwt
-python-socketio[asyncio_client]
-aiofiles
+# Стандартная библиотека Python — ничего не нужно!
