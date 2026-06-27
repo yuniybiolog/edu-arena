@@ -1,54 +1,209 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>🎮 Образовательная Арена</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hilbert Space</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial; background: #1a1a2e; color: white; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
-        .header { text-align: center; padding: 40px; background: #16213e; border-radius: 10px; margin: 20px 0; }
+        body {
+            font-family: system-ui, sans-serif;
+            background: linear-gradient(135deg, #0c0c1d 0%, #1a1a3e 100%);
+            color: #e0e0ff;
+            min-height: 100vh;
+        }
+
+        /* Навбар */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background: rgba(0,0,0,0.5);
+            border-bottom: 1px solid rgba(99,102,241,0.3);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .navbar .logo {
+            font-size: 1.5em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+        .navbar .balance {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .balance-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        .omega { color: #fbbf24; }
+        .kappa { color: #c084fc; }
+        .nav-links { display: flex; gap: 15px; }
+        .nav-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: #c7d2fe; }
+        .btn-sm {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+        .btn-outline {
+            border: 1px solid #6366f1;
+            color: #a5b4fc;
+            background: transparent;
+        }
+
+        /* Главная */
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        .hero { text-align: center; padding: 80px 0 60px; }
+        .hero h1 {
+            font-size: 3.5em;
+            background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+        }
+        .hero .subtitle { font-size: 1.3em; color: #94a3b8; }
+        .hero .description { color: #64748b; margin: 20px 0 40px; }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin: 60px 0;
+        }
+        .card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .card:hover {
+            background: rgba(99,102,241,0.08);
+            transform: translateY(-5px);
+        }
+        .card .icon { font-size: 3em; margin-bottom: 15px; }
+        .card h3 { color: #c7d2fe; margin-bottom: 10px; }
+        .card p { color: #64748b; font-size: 0.95em; }
+
+        /* Контент после входа */
+        #content { display: none; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card { background: #16213e; padding: 20px; border-radius: 10px; }
-        button { background: #e94560; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
-        button:hover { background: #c23152; }
-        input, textarea { width: 100%; padding: 10px; margin: 5px 0; border: none; border-radius: 5px; background: #0f3460; color: white; }
-        .coins { color: #ffd700; font-size: 24px; font-weight: bold; }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 1em;
+        }
+        button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 5px;
+        }
         #messages { max-height: 300px; overflow-y: auto; }
-        .msg { padding: 5px; margin: 5px 0; background: #0f3460; border-radius: 5px; }
+        .msg { padding: 8px; margin: 5px 0; background: rgba(255,255,255,0.05); border-radius: 8px; }
+        .footer { text-align: center; padding: 40px; color: #475569; border-top: 1px solid rgba(99,102,241,0.1); margin-top: 60px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎮 Образовательная Арена</h1>
-            <p>Решай задачи • Зарабатывай монеты • Общайся</p>
+    <!-- Навбар (всегда виден) -->
+    <nav class="navbar">
+        <a href="/" class="logo">Hilbert Space</a>
+        <div class="nav-links">
+            <a href="/resources">📚 Ресурсы</a>
+            <span id="nav-login"><a href="/login" class="btn-sm btn-outline">Войти</a></span>
+            <span id="nav-balance" style="display:none">
+                <span class="balance-item omega">Ω <span id="omega-balance">0</span></span>
+                <span class="balance-item kappa">ϰ <span id="kappa-balance">0</span></span>
+            </span>
         </div>
-        
-        <div id="login">
-            <h2>Вход / Регистрация</h2>
-            <input id="username" placeholder="Логин">
-            <input id="password" type="password" placeholder="Пароль">
-            <button onclick="register()">Регистрация</button>
-            <button onclick="login()">Войти</button>
+    </nav>
+
+    <!-- Главная (до входа) -->
+    <div id="landing">
+        <div class="container">
+            <div class="hero">
+                <h1>Hilbert Space</h1>
+                <p class="subtitle">Бесконечномерное пространство знаний</p>
+                <p class="description">
+                    Решай задачи, зарабатывай Ω Омега-газ и ϰ Каппа-газ, сражайся на арене.
+                </p>
+                <a href="/register" class="btn-sm btn-primary" style="padding:14px 32px;font-size:1.1em;">🚀 Начать путь</a>
+            </div>
+
+            <div class="features">
+                <div class="card">
+                    <div class="icon">🧠</div>
+                    <h3>Задачи</h3>
+                    <p>От математики до квантовой физики. Зарабатывай Ω и редкий ϰ.</p>
+                </div>
+                <div class="card">
+                    <div class="icon">💬</div>
+                    <h3>Чат</h3>
+                    <p>Общайся с другими исследователями в реальном времени.</p>
+                </div>
+                <div class="card">
+                    <div class="icon">📝</div>
+                    <h3>Форум</h3>
+                    <p>Обсуждай теории и находи единомышленников.</p>
+                </div>
+            </div>
+
+            <div class="footer"><p>Hilbert Space © 2024</p></div>
         </div>
-        
-        <div id="game" style="display:none">
+    </div>
+
+    <!-- Контент после входа -->
+    <div id="content">
+        <div class="container">
             <div class="grid">
                 <div class="card">
-                    <h2>💰 Баланс: <span class="coins" id="coins">0</span></h2>
-                    <h3>Задачи:</h3>
+                    <h2>📋 Задачи</h2>
                     <div id="tasks"></div>
                 </div>
-                
+
                 <div class="card">
                     <h2>💬 Чат</h2>
                     <div id="messages"></div>
                     <input id="msg" placeholder="Сообщение...">
                     <button onclick="sendMsg()">Отправить</button>
                 </div>
-                
+
                 <div class="card" style="grid-column: 1/-1">
                     <h2>📝 Форум</h2>
                     <textarea id="post" placeholder="Поделитесь мыслью..."></textarea>
@@ -58,116 +213,96 @@
             </div>
         </div>
     </div>
-    
+
     <script>
         let token = localStorage.getItem('token');
         const socket = io();
-        
-        function register() {
-            fetch('/register', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    username: document.getElementById('username').value,
-                    password: document.getElementById('password').value
-                })
-            }).then(r => r.json()).then(d => {
-                token = d.token;
-                localStorage.setItem('token', token);
-                startGame();
-            });
+
+        function updateNav() {
+            if (token) {
+                document.getElementById('nav-login').style.display = 'none';
+                document.getElementById('nav-balance').style.display = 'inline';
+                document.getElementById('landing').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                loadBalance();
+                loadTasks();
+                loadForum();
+            } else {
+                document.getElementById('nav-login').style.display = 'inline';
+                document.getElementById('nav-balance').style.display = 'none';
+                document.getElementById('landing').style.display = 'block';
+                document.getElementById('content').style.display = 'none';
+            }
         }
-        
-        function login() {
-            fetch('/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    username: document.getElementById('username').value,
-                    password: document.getElementById('password').value
-                })
-            }).then(r => r.json()).then(d => {
-                token = d.token;
-                localStorage.setItem('token', token);
-                startGame();
-            });
-        }
-        
-        function startGame() {
-            document.getElementById('login').style.display = 'none';
-            document.getElementById('game').style.display = 'block';
-            loadBalance();
-            loadTasks();
-            loadForum();
-        }
-        
+
         function loadBalance() {
-            fetch('/balance', {headers: {'Authorization': `Bearer ${token}`}})
-                .then(r => r.json()).then(d => document.getElementById('coins').textContent = d.coins);
+            fetch('/api/balance', {headers: {'Authorization': `Bearer ${token}`}})
+                .then(r => r.json()).then(d => {
+                    document.getElementById('omega-balance').textContent = d.omega;
+                    document.getElementById('kappa-balance').textContent = d.kappa;
+                });
         }
-        
+
         function loadTasks() {
-            fetch('/tasks', {headers: {'Authorization': `Bearer ${token}`}})
+            fetch('/api/tasks', {headers: {'Authorization': `Bearer ${token}`}})
                 .then(r => r.json()).then(tasks => {
                     document.getElementById('tasks').innerHTML = tasks.map(t => `
-                        <div style="margin:10px 0;padding:10px;background:#0f3460;border-radius:5px">
-                            <b>${t.title}</b> (${t.reward}💰)
+                        <div style="margin:10px 0;padding:15px;background:rgba(255,255,255,0.05);border-radius:10px">
+                            <b>${t.title}</b> (${t.difficulty})
                             <p>${t.description}</p>
+                            <small>Ω${t.reward_omega} ϰ${t.reward_kappa}</small>
                             <input id="a${t.id}" placeholder="Ответ">
                             <button onclick="check(${t.id})">Ответить</button>
                         </div>
                     `).join('');
                 });
         }
-        
+
         function check(id) {
-            fetch('/tasks/check', {
+            fetch('/api/tasks/check', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
                 body: JSON.stringify({taskId: id, answer: document.getElementById('a'+id).value})
             }).then(r => r.json()).then(d => {
                 alert(d.correct ? '✅ Правильно!' : '❌ Неправильно');
-                loadBalance();
+                if (d.correct) loadBalance();
             });
         }
-        
+
         function sendMsg() {
             socket.emit('chat', {token, message: document.getElementById('msg').value});
             document.getElementById('msg').value = '';
         }
-        
+
         function createPost() {
-            fetch('/forum', {
+            fetch('/api/forum', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
                 body: JSON.stringify({content: document.getElementById('post').value})
-            }).then(() => {
-                document.getElementById('post').value = '';
-                loadForum();
-            });
+            }).then(() => { document.getElementById('post').value = ''; loadForum(); });
         }
-        
+
         function loadForum() {
-            fetch('/forum', {headers: {'Authorization': `Bearer ${token}`}})
+            fetch('/api/forum', {headers: {'Authorization': `Bearer ${token}`}})
                 .then(r => r.json()).then(posts => {
                     document.getElementById('forum').innerHTML = posts.map(p => `
-                        <div style="margin:5px 0;padding:10px;background:#0f3460;border-radius:5px">
+                        <div style="margin:5px 0;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px">
                             <b>${p.username}</b>: ${p.content}
                         </div>
                     `).join('');
                 });
         }
-        
+
         socket.on('chat', d => {
             const div = document.getElementById('messages');
             div.innerHTML += `<div class="msg"><b>${d.username}</b>: ${d.message}</div>`;
             div.scrollTop = div.scrollHeight;
         });
-        
+
         socket.on('notification', d => alert(d.message));
         socket.on('new_post', () => loadForum());
-        
-        if (token) startGame();
+
+        updateNav();
     </script>
 </body>
 </html>

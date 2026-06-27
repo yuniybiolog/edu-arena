@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+bcrypt
+pyjwt
+python-socketio
+aiofiles
+

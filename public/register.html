@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация — Hilbert Space</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, sans-serif;
+            background: linear-gradient(135deg, #0c0c1d, #1a1a3e);
+            color: #e0e0ff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .form-container {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(99,102,241,0.3);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h2 { color: #c7d2fe; margin-bottom: 10px; }
+        p { color: #64748b; margin-bottom: 20px; font-size: 0.9em; }
+        .starting {
+            background: rgba(99,102,241,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        .starting span { font-weight: bold; }
+        .omega { color: #fbbf24; }
+        .kappa { color: #c084fc; }
+        input {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 1em;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        a { color: #6366f1; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>🚀 Регистрация</h2>
+        <p>Создай аккаунт и начни исследовать Hilbert Space</p>
+        <div class="starting">
+            Стартовый баланс:<br>
+            <span class="omega">Ω 500 Омега-газа</span><br>
+            <span class="kappa">ϰ 2 Каппа-газа</span>
+        </div>
+        <input id="username" placeholder="Логин">
+        <input id="password" type="password" placeholder="Пароль">
+        <button onclick="register()">Создать аккаунт</button>
+        <p style="margin-top:15px">Уже есть аккаунт? <a href="/login">Войти</a></p>
+        <p><a href="/">← На главную</a></p>
+    </div>
+
+    <script>
+        async function register() {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value
+                })
+            });
+            const data = await res.json();
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+                window.location.href = '/';
+            } else {
+                alert(data.error);
+            }
+        }
+    </script>
+</body>
+</html>

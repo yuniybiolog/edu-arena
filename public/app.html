@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>🎮 Образовательная Арена</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial; background: #1a1a2e; color: white; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 40px; background: #16213e; border-radius: 10px; margin: 20px 0; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: #16213e; padding: 20px; border-radius: 10px; }
+        button { background: #e94560; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #c23152; }
+        input, textarea { width: 100%; padding: 10px; margin: 5px 0; border: none; border-radius: 5px; background: #0f3460; color: white; }
+        .coins { color: #ffd700; font-size: 24px; font-weight: bold; }
+        #messages { max-height: 300px; overflow-y: auto; }
+        .msg { padding: 5px; margin: 5px 0; background: #0f3460; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Образовательная Арена</h1>
+            <p>Решай задачи • Зарабатывай монеты • Общайся</p>
+        </div>
+        
+        <div id="login">
+            <h2>Вход / Регистрация</h2>
+            <input id="username" placeholder="Логин">
+            <input id="password" type="password" placeholder="Пароль">
+            <button onclick="register()">Регистрация</button>
+            <button onclick="login()">Войти</button>
+        </div>
+        
+        <div id="game" style="display:none">
+            <div class="grid">
+                <div class="card">
+                    <h2>💰 Баланс: <span class="coins" id="coins">0</span></h2>
+                    <h3>Задачи:</h3>
+                    <div id="tasks"></div>
+                </div>
+                
+                <div class="card">
+                    <h2>💬 Чат</h2>
+                    <div id="messages"></div>
+                    <input id="msg" placeholder="Сообщение...">
+                    <button onclick="sendMsg()">Отправить</button>
+                </div>
+                
+                <div class="card" style="grid-column: 1/-1">
+                    <h2>📝 Форум</h2>
+                    <textarea id="post" placeholder="Поделитесь мыслью..."></textarea>
+                    <button onclick="createPost()">Опубликовать</button>
+                    <div id="forum"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let token = localStorage.getItem('token');
+        const socket = io();
+        
+        function register() {
+            fetch('/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value
+                })
+            }).then(r => r.json()).then(d => {
+                token = d.token;
+                localStorage.setItem('token', token);
+                startGame();
+            });
+        }
+        
+        function login() {
+            fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value
+                })
+            }).then(r => r.json()).then(d => {
+                token = d.token;
+                localStorage.setItem('token', token);
+                startGame();
+            });
+        }
+        
+        function startGame() {
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('game').style.display = 'block';
+            loadBalance();
+            loadTasks();
+            loadForum();
+        }
+        
+        function loadBalance() {
+            fetch('/balance', {headers: {'Authorization': `Bearer ${token}`}})
+                .then(r => r.json()).then(d => document.getElementById('coins').textContent = d.coins);
+        }
+        
+        function loadTasks() {
+            fetch('/tasks', {headers: {'Authorization': `Bearer ${token}`}})
+                .then(r => r.json()).then(tasks => {
+                    document.getElementById('tasks').innerHTML = tasks.map(t => `
+                        <div style="margin:10px 0;padding:10px;background:#0f3460;border-radius:5px">
+                            <b>${t.title}</b> (${t.reward}💰)
+                            <p>${t.description}</p>
+                            <input id="a${t.id}" placeholder="Ответ">
+                            <button onclick="check(${t.id})">Ответить</button>
+                        </div>
+                    `).join('');
+                });
+        }
+        
+        function check(id) {
+            fetch('/tasks/check', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                body: JSON.stringify({taskId: id, answer: document.getElementById('a'+id).value})
+            }).then(r => r.json()).then(d => {
+                alert(d.correct ? '✅ Правильно!' : '❌ Неправильно');
+                loadBalance();
+            });
+        }
+        
+        function sendMsg() {
+            socket.emit('chat', {token, message: document.getElementById('msg').value});
+            document.getElementById('msg').value = '';
+        }
+        
+        function createPost() {
+            fetch('/forum', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                body: JSON.stringify({content: document.getElementById('post').value})
+            }).then(() => {
+                document.getElementById('post').value = '';
+                loadForum();
+            });
+        }
+        
+        function loadForum() {
+            fetch('/forum', {headers: {'Authorization': `Bearer ${token}`}})
+                .then(r => r.json()).then(posts => {
+                    document.getElementById('forum').innerHTML = posts.map(p => `
+                        <div style="margin:5px 0;padding:10px;background:#0f3460;border-radius:5px">
+                            <b>${p.username}</b>: ${p.content}
+                        </div>
+                    `).join('');
+                });
+        }
+        
+        socket.on('chat', d => {
+            const div = document.getElementById('messages');
+            div.innerHTML += `<div class="msg"><b>${d.username}</b>: ${d.message}</div>`;
+            div.scrollTop = div.scrollHeight;
+        });
+        
+        socket.on('notification', d => alert(d.message));
+        socket.on('new_post', () => loadForum());
+        
+        if (token) startGame();
+    </script>
+</body>
+</html>
