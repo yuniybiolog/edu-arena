@@ -2,6 +2,5 @@ fastapi
 uvicorn
 bcrypt
 pyjwt
-python-socketio
+python-socketio[asyncio_client]
 aiofiles
-
