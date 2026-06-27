@@ -1,6 +1,3 @@
 {
-  "name": "hilbert-space",
-  "scripts": {
-    "start": "python server.py"
-  }
+  "name": "hilbert-space"
 }
