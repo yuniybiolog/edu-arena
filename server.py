@@ -48,6 +48,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_file('public/app.html', 'text/html')
         elif path == '/back.jpg':
             self.send_file('public/back.jpg', 'image/jpeg')
+        elif path == '/forgot':
+            self.send_file('public/forgot.html', 'text/html')
         else:
             self.send_error(404)
 

@@ -2,35 +2,190 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UAC — Uzbek Association of Chemistry</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui, sans-serif; background: #0a0a0f; color: #e0e0e0; min-height: 100vh; }
-        .bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('/back.jpg') center/cover no-repeat; opacity: 0.25; z-index: -1; }
-        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); }
-        .logo { font-size: 1.6em; font-weight: 800; background: linear-gradient(135deg, #22c55e, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .nav-btn { padding: 10px 20px; background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.5); border-radius: 10px; color: #86efac; font-weight: 600; text-decoration: none; margin-left: 10px; }
-        .hero { text-align: center; padding: 100px 20px 60px; }
-        .hero h1 { font-size: 3em; margin-bottom: 15px; background: linear-gradient(135deg, #e0e0e0, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hero p { color: #94a3b8; font-size: 1.2em; margin-bottom: 40px; }
-        .cta { padding: 16px 40px; background: linear-gradient(135deg, #22c55e, #10b981); color: white; font-size: 1.2em; font-weight: 700; border-radius: 14px; text-decoration: none; }
-        .footer { text-align: center; padding: 30px; color: #475569; }
+        body {
+            font-family: system-ui, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .bg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: url('/back.jpg') center/cover no-repeat;
+            opacity: 0.25;
+            z-index: -1;
+        }
+        .overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(10,10,15,0.9) 0%, rgba(20,20,40,0.7) 50%, rgba(10,10,15,0.9) 100%);
+            z-index: -1;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .logo {
+            font-size: 1.8em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #22c55e, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+        }
+        .nav-btn {
+            padding: 10px 24px;
+            background: rgba(34,197,94,0.2);
+            border: 1px solid rgba(34,197,94,0.5);
+            border-radius: 10px;
+            color: #86efac;
+            font-size: 1em;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .nav-btn:hover {
+            background: rgba(34,197,94,0.4);
+            box-shadow: 0 0 20px rgba(34,197,94,0.3);
+        }
+        .hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: calc(100vh - 80px);
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .hero h1 {
+            font-size: 3.5em;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #e0e0e0, #ffffff, #86efac);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+        .subtitle {
+            font-size: 1.3em;
+            color: #94a3b8;
+            margin-bottom: 15px;
+            max-width: 600px;
+        }
+        .description {
+            font-size: 1.1em;
+            color: #64748b;
+            max-width: 700px;
+            margin-bottom: 50px;
+            line-height: 1.6;
+        }
+        .cta-btn {
+            padding: 16px 40px;
+            font-size: 1.2em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #22c55e, #10b981);
+            color: white;
+            border-radius: 14px;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 8px 30px rgba(34,197,94,0.4);
+            letter-spacing: 1px;
+        }
+        .cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(34,197,94,0.6);
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 1000px;
+            margin: 60px auto 0;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .feature-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 20px;
+            padding: 35px 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+        .feature-card:hover {
+            background: rgba(34,197,94,0.08);
+            border-color: rgba(34,197,94,0.3);
+            transform: translateY(-5px);
+        }
+        .feature-icon { font-size: 3em; margin-bottom: 20px; }
+        .feature-card h3 { color: #86efac; margin-bottom: 12px; font-size: 1.3em; }
+        .feature-card p { color: #64748b; font-size: 0.95em; line-height: 1.5; }
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #475569;
+            font-size: 0.9em;
+            position: relative;
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
     <div class="bg"></div>
+    <div class="overlay"></div>
+
     <nav class="navbar">
         <div class="logo">UAC</div>
-        <div>
-            <a href="/login" class="nav-btn">Войти</a>
-            <a href="/register" class="nav-btn">Регистрация</a>
-        </div>
+        <a href="/login" class="nav-btn">Войти</a>
     </nav>
+
     <div class="hero">
         <h1>Uzbek Association of Chemistry</h1>
-        <p>Исследуй химию через задачи, зарабатывай Омега-газ и Каппа-газ</p>
-        <a href="/register" class="cta">🚀 Присоединиться</a>
+        <p class="subtitle">Пространство знаний без границ</p>
+        <p class="description">
+            Исследуй химию через интерактивные задачи. Зарабатывай Омега-газ и Каппа-газ. Сражайся на арене интеллекта.
+        </p>
+        <a href="/login" class="cta-btn">Войти</a>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">🧪</div>
+                <h3>Химия</h3>
+                <p>От органики до физической химии</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚔️</div>
+                <h3>Арена</h3>
+                <p>Сражайся с другими химиками</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💬</div>
+                <h3>Сообщество</h3>
+                <p>Обсуждай задачи и теории</p>
+            </div>
+        </div>
     </div>
+
     <div class="footer">UAC © 2024 — Uzbek Association of Chemistry</div>
 </body>
 </html>
