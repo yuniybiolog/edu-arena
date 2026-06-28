@@ -1,6 +1,7 @@
 
 import psycopg2
 import psycopg2.extras
+import psycopg2.errors
 import os
 import json
 import hashlib
@@ -14,16 +15,13 @@ def get_db():
     db_url = os.environ.get('DATABASE_URL')
     if db_url:
         return psycopg2.connect(db_url)
-
     return psycopg2.connect(
-        host=os.environ.get('PGHOST', 'dpg-d90dj86rnols73ejljs0-a'),
+        host=os.environ.get('PGHOST', 'localhost'),
         database=os.environ.get('PGDATABASE', 'hilbert'),
-        user=os.environ.get('PGUSER', 'hilbert_user'),
-        password=os.environ.get('PGPASSWORD', 'MQnUKPZ0TAObOOtpoI4UwwHTqLHCioW4'),
+        user=os.environ.get('PGUSER', 'ahror'),
+        password=os.environ.get('PGPASSWORD', ''),
         port=os.environ.get('PGPORT', '5432')
     )
-
-
 
 db = get_db()
 cur = db.cursor()
