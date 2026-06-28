@@ -16,16 +16,13 @@
             justify-content: center;
         }
         .bg {
-            position: fixed;
-            top: 0; left: 0;
+            position: fixed; top: 0; left: 0;
             width: 100%; height: 100%;
             background: url('/back.jpg') center/cover no-repeat;
-            opacity: 0.2;
-            z-index: -1;
+            opacity: 0.2; z-index: -1;
         }
         .overlay {
-            position: fixed;
-            top: 0; left: 0;
+            position: fixed; top: 0; left: 0;
             width: 100%; height: 100%;
             background: linear-gradient(135deg, rgba(10,10,15,0.9), rgba(20,20,40,0.8));
             z-index: -1;
@@ -38,18 +35,9 @@
             width: 100%;
             max-width: 400px;
             text-align: center;
-            backdrop-filter: blur(10px);
         }
-        h2 {
-            color: #86efac;
-            margin-bottom: 8px;
-            font-size: 1.8em;
-        }
-        .subtitle {
-            color: #64748b;
-            font-size: 0.9em;
-            margin-bottom: 25px;
-        }
+        h2 { color: #86efac; margin-bottom: 8px; font-size: 1.8em; }
+        .subtitle { color: #64748b; font-size: 0.9em; margin-bottom: 25px; }
         input {
             width: 100%;
             padding: 14px 16px;
@@ -59,57 +47,56 @@
             border-radius: 10px;
             color: white;
             font-size: 1em;
-            transition: border-color 0.3s;
         }
-        input:focus {
-            outline: none;
-            border-color: rgba(34,197,94,0.5);
-        }
-        input::placeholder {
-            color: #475569;
-        }
+        input:focus { outline: none; border-color: rgba(34,197,94,0.5); }
         button {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #22c55e, #10b981);
-            border: none;
             border-radius: 10px;
-            color: white;
             font-size: 1.1em;
             font-weight: 600;
             cursor: pointer;
-            margin-top: 20px;
             transition: all 0.3s;
         }
-        button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 25px rgba(34,197,94,0.3);
-        }
-        .links {
+        .btn-login {
+            background: linear-gradient(135deg, #22c55e, #10b981);
+            color: white;
+            border: none;
             margin-top: 20px;
+        }
+        .btn-login:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(34,197,94,0.3); }
+
+        .divider-line {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .links a {
-            color: #22c55e;
-            text-decoration: none;
-            font-size: 0.9em;
-            transition: color 0.2s;
-        }
-        .links a:hover {
-            color: #4ade80;
-        }
-        .divider {
+            align-items: center;
+            margin: 25px 0;
             color: #475569;
-            margin: 0 5px;
+            font-size: 0.9em;
         }
-        .error {
-            color: #ef4444;
-            font-size: 0.85em;
-            margin-top: 10px;
-            display: none;
+        .divider-line::before, .divider-line::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
+        .divider-line span { padding: 0 15px; }
+
+        .btn-google {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: white;
+            color: #1f1f1f;
+            border: none;
+            font-size: 1em;
+        }
+        .btn-google:hover { background: #f1f1f1; }
+        .btn-google img { width: 20px; height: 20px; }
+
+        .links { margin-top: 20px; }
+        .links a { color: #22c55e; text-decoration: none; font-size: 0.9em; }
+        .links a:hover { color: #4ade80; }
+        .error { color: #ef4444; font-size: 0.85em; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -120,20 +107,23 @@
         <h2>Вход</h2>
         <p class="subtitle">Добро пожаловать в Uzbek Association of Chemistry</p>
 
-        <input id="username" placeholder="Логин" autocomplete="username">
-        <input id="password" type="password" placeholder="Пароль" autocomplete="current-password">
+        <input id="username" placeholder="Логин">
+        <input id="password" type="password" placeholder="Пароль">
 
         <div class="error" id="error"></div>
 
-        <button onclick="login()">Войти</button>
+        <button class="btn-login" onclick="login()">Войти</button>
+
+        <div class="divider-line"><span>или</span></div>
+
+        <button class="btn-google" onclick="loginGoogle()">
+            <img src="https://www.google.com/favicon.ico" alt="G">
+            Войти через Google
+        </button>
 
         <div class="links">
-            <a href="/forgot">Забыли пароль?</a>
-            <span>
-                <a href="/register">Создать аккаунт</a>
-                <span class="divider">|</span>
-                <a href="/">Главная</a>
-            </span>
+            <a href="/forgot">Забыли пароль?</a><br>
+            <a href="/register">Создать аккаунт</a> | <a href="/">Главная</a>
         </div>
     </div>
 
@@ -164,6 +154,14 @@
                 errorDiv.textContent = data.error || 'Неверный логин или пароль';
                 errorDiv.style.display = 'block';
             }
+        }
+
+        function loginGoogle() {
+            const clientId = 'ТВОЙ_GOOGLE_CLIENT_ID';
+            const redirectUri = 'https://hilbert-space.onrender.com/oauth/google/callback';
+            const scope = 'email profile openid';
+            const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
+            window.location.href = url;
         }
 
         document.getElementById('password').addEventListener('keydown', function(e) {
