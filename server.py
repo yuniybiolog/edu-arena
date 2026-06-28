@@ -16,7 +16,7 @@ def get_db():
         return psycopg2.connect(db_url)
 
     return psycopg2.connect(
-        host=os.environ.get('PGHOST', 'localhost'),
+        host=os.environ.get('PGHOST', 'dpg-d90dj86rnols73ejljs0-a'),
         database=os.environ.get('PGDATABASE', 'hilbert'),
         user=os.environ.get('PGUSER', 'hilbert_user'),
         password=os.environ.get('PGPASSWORD', 'MQnUKPZ0TAObOOtpoI4UwwHTqLHCioW4'),
