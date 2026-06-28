@@ -1,3 +1,14 @@
+import psycopg2
+import psycopg2.extras
+import psycopg2.errors
+import os
+import json
+import hashlib
+import requests
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+
+
 def handle_google_callback(self):
     parsed = urlparse(self.path)
     query = parse_qs(parsed.query)
