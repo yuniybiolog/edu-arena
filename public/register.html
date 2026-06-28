@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация — UAC</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #0a0a0f; color: #e0e0e0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: url('/back.jpg') center/cover no-repeat; opacity: 0.2; z-index: -1; }
+        .form { background: rgba(0,0,0,0.8); border: 1px solid rgba(34,197,94,0.3); border-radius: 20px; padding: 40px; width: 100%; max-width: 400px; text-align: center; }
+        h2 { color: #86efac; margin-bottom: 10px; }
+        p { color: #64748b; font-size: 0.9em; margin-bottom: 20px; }
+        .start { background: rgba(34,197,94,0.1); border-radius: 10px; padding: 15px; margin-bottom: 20px; }
+        .omega { color: #fbbf24; } .kappa { color: #c084fc; }
+        input { width: 100%; padding: 14px; margin: 10px 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: white; font-size: 1em; }
+        button { width: 100%; padding: 14px; background: linear-gradient(135deg, #22c55e, #10b981); border: none; border-radius: 10px; color: white; font-size: 1.1em; font-weight: 600; cursor: pointer; margin-top: 15px; }
+        a { color: #22c55e; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="bg"></div>
+    <div class="form">
+        <h2>🚀 Регистрация</h2>
+        <p>Стань частью Uzbek Association of Chemistry</p>
+        <div class="start">
+            Стартовый баланс:<br>
+            <span class="omega">Ω 500 Омега-газа</span><br>
+            <span class="kappa">ϰ 2 Каппа-газа</span>
+        </div>
+        <input id="username" placeholder="Логин">
+        <input id="password" type="password" placeholder="Пароль">
+        <button onclick="register()">Создать аккаунт</button>
+        <p style="margin-top:15px"><a href="/login">Войти</a> | <a href="/">Главная</a></p>
+    </div>
+    <script>
+        async function register() {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value
+                })
+            });
+            const data = await res.json();
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+                window.location.href = '/app';
+            } else {
+                alert(data.error);
+            }
+        }
+    </script>
+</body>
+</html>
