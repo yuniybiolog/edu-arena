@@ -1,4 +1,3 @@
-
 import psycopg2
 import psycopg2.extras
 import psycopg2.errors
@@ -7,9 +6,6 @@ import json
 import hashlib
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
-
-
-
 
 def get_db():
     db_url = os.environ.get('DATABASE_URL')
@@ -23,6 +19,7 @@ def get_db():
         port=os.environ.get('PGPORT', '5432')
     )
 
+# Инициализация БД
 db = get_db()
 cur = db.cursor()
 cur.execute("""
@@ -59,7 +56,6 @@ cur.execute("""
 """)
 db.commit()
 
-
 cur.execute("SELECT COUNT(*) FROM tasks")
 if cur.fetchone()[0] == 0:
     tasks = [
@@ -78,16 +74,14 @@ cur.close()
 db.close()
 print('🗄️ База данных готова')
 
-
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
 
-
-        if path in ['/', '/register', '/login', '/resources']:
-            filename = 'public/index.html' if path == '/' else f'public{path}.html'
+        # Главная страница
+        if path == '/':
             try:
-                with open(filename, 'rb') as f:
+                with open('public/index.html', 'rb') as f:
                     self.send_response(200)
                     self.send_header('Content-Type', 'text/html; charset=utf-8')
                     self.end_headers()
@@ -95,180 +89,21 @@ class Handler(BaseHTTPRequestHandler):
             except FileNotFoundError:
                 self.send_error(404)
 
-
-        elif path == '/api/tasks':
-            db = get_db()
-            cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute('SELECT * FROM tasks ORDER BY id DESC')
-            tasks = cur.fetchall()
-
-            for t in tasks:
-                for k, v in t.items():
-                    if hasattr(v, 'isoformat'):
-                        t[k] = v.isoformat()
-            cur.close();
-            db.close()
-
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps(tasks, ensure_ascii=False).encode())
-
-
-        elif path == '/api/forum':
-            db = get_db()
-            cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute("""
-                SELECT fp.id, fp.content, fp.created_at, u.username 
-                FROM forum_posts fp 
-                JOIN users u ON fp.user_id = u.id 
-                ORDER BY fp.created_at DESC 
-                LIMIT 50
-            """)
-            posts = cur.fetchall()
-            for p in posts:
-                for k, v in p.items():
-                    if hasattr(v, 'isoformat'):
-                        p[k] = v.isoformat()
-            cur.close();
-            db.close()
-
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps(posts, ensure_ascii=False).encode())
-
-
-        elif path == '/api/balance':
-            token = self.headers.get('Authorization', '').replace('Bearer ', '')
-            if not token:
-                self.send_error(401)
-                return
-
-            db = get_db()
-            cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute('SELECT omega, kappa, rating, username FROM users WHERE id = %s', (int(token),))
-            user = cur.fetchone()
-            cur.close();
-            db.close()
-
-            if user:
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps(user, ensure_ascii=False).encode())
-            else:
-                self.send_error(404)
-
-        else:
-            self.send_error(404)
-
-    def do_POST(self):
-        length = int(self.headers.get('Content-Length', 0))
-        body = json.loads(self.rfile.read(length)) if length > 0 else {}
-        path = urlparse(self.path).path
-
-
-        if path == '/api/register':
-            username = body.get('username', '')
-            password = hashlib.sha256(body.get('password', '').encode()).hexdigest()
-
-            db = get_db()
-            cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        # Картинка back.jpg
+        elif path == '/back.jpg':
             try:
-                cur.execute('INSERT INTO users (username, password) VALUES (%s, %s) RETURNING id, omega, kappa',
-                            (username, password))
-                user = cur.fetchone()
-                db.commit()
-                response = {'token': str(user['id']), 'omega': user['omega'], 'kappa': user['kappa']}
-            except psycopg2.errors.UniqueViolation:
-                db.rollback()
-                response = {'error': 'Пользователь уже существует'}
-            cur.close();
-            db.close()
-
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps(response, ensure_ascii=False).encode())
-
-        elif path == '/api/login':
-            username = body.get('username', '')
-            password = hashlib.sha256(body.get('password', '').encode()).hexdigest()
-
-            db = get_db()
-            cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute('SELECT id, omega, kappa, rating FROM users WHERE username = %s AND password = %s',
-                        (username, password))
-            user = cur.fetchone()
-            cur.close();
-            db.close()
-
-            if user:
-                response = {'token': str(user['id']), 'omega': user['omega'],
-                            'kappa': user['kappa'], 'rating': user['rating']}
-            else:
-                response = {'error': 'Неверный логин или пароль'}
-
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps(response, ensure_ascii=False).encode())
-
-
-        elif path == '/api/tasks/check':
-            task_id = body.get('taskId')
-            answer = body.get('answer', '')
-            token = body.get('token', '')
-
-            db = get_db()
-            cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute('SELECT * FROM tasks WHERE id = %s', (task_id,))
-            task = cur.fetchone()
-
-            if task and task['answer'].strip().lower() == answer.strip().lower():
-                cur.execute("""
-                    UPDATE users 
-                    SET omega = omega + %s, kappa = kappa + %s, rating = rating + 10 
-                    WHERE id = %s 
-                    RETURNING omega, kappa
-                """, (task['reward_omega'], task['reward_kappa'], int(token)))
-                user = cur.fetchone()
-                db.commit()
-                response = {'correct': True, 'omega': user['omega'], 'kappa': user['kappa']}
-            else:
-                response = {'correct': False}
-
-            cur.close();
-            db.close()
-
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps(response, ensure_ascii=False).encode())
-
-
-        elif path == '/api/forum':
-            token = body.get('token', '')
-            content = body.get('content', '')
-
-            db = get_db()
-            cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute('INSERT INTO forum_posts (user_id, content) VALUES (%s, %s) RETURNING id',
-                        (int(token), content))
-            db.commit()
-            cur.close();
-            db.close()
-
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps({'success': True}, ensure_ascii=False).encode())
+                with open('public/back.jpg', 'rb') as f:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'image/jpeg')
+                    self.end_headers()
+                    self.wfile.write(f.read())
+            except FileNotFoundError:
+                self.send_error(404)
 
         else:
             self.send_error(404)
 
 PORT = int(os.environ.get('PORT', 3000))
 server = HTTPServer(('0.0.0.0', PORT), Handler)
-print(f'🧠 Hilbert Space запущен на порту {PORT}')
+print(f'🧠 UAC запущен на порту {PORT}')
 server.serve_forever()

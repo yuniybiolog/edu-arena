@@ -3,306 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hilbert Space</title>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <title>UAC — Universal Academic Community</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: system-ui, sans-serif;
-            background: linear-gradient(135deg, #0c0c1d 0%, #1a1a3e 100%);
-            color: #e0e0ff;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
             min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
         }
 
-        /* Навбар */
+        .bg-image {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: url('/back.jpg') center/cover no-repeat;
+            opacity: 0.3;
+            z-index: -1;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(10,10,15,0.9) 0%, rgba(20,20,40,0.7) 50%, rgba(10,10,15,0.9) 100%);
+            z-index: -1;
+        }
+
         .navbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 30px;
-            background: rgba(0,0,0,0.5);
-            border-bottom: 1px solid rgba(99,102,241,0.3);
-            backdrop-filter: blur(10px);
+            padding: 15px 40px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
             position: sticky;
             top: 0;
             z-index: 100;
         }
-        .navbar .logo {
-            font-size: 1.5em;
-            font-weight: bold;
-            background: linear-gradient(135deg, #6366f1, #a855f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-decoration: none;
-        }
-        .navbar .balance {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-        .balance-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: 600;
-            font-size: 1.1em;
-        }
-        .omega { color: #fbbf24; }
-        .kappa { color: #c084fc; }
-        .nav-links { display: flex; gap: 15px; }
-        .nav-links a {
-            color: #94a3b8;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-        .nav-links a:hover { color: #c7d2fe; }
-        .btn-sm {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.9em;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s;
-            border: none;
-            cursor: pointer;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-        }
-        .btn-outline {
-            border: 1px solid #6366f1;
-            color: #a5b4fc;
-            background: transparent;
-        }
 
-        /* Главная */
-        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
-        .hero { text-align: center; padding: 80px 0 60px; }
-        .hero h1 {
-            font-size: 3.5em;
+        .logo {
+            font-size: 1.8em;
+            font-weight: 800;
             background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 15px;
+            letter-spacing: 2px;
         }
-        .hero .subtitle { font-size: 1.3em; color: #94a3b8; }
-        .hero .description { color: #64748b; margin: 20px 0 40px; }
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 25px;
-            margin: 60px 0;
-        }
-        .card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(99,102,241,0.2);
-            border-radius: 16px;
-            padding: 30px;
-            text-align: center;
-            transition: all 0.3s;
-        }
-        .card:hover {
-            background: rgba(99,102,241,0.08);
-            transform: translateY(-5px);
-        }
-        .card .icon { font-size: 3em; margin-bottom: 15px; }
-        .card h3 { color: #c7d2fe; margin-bottom: 10px; }
-        .card p { color: #64748b; font-size: 0.95em; }
 
-        /* Контент после входа */
-        #content { display: none; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(99,102,241,0.2);
+        .nav-btn {
+            padding: 10px 24px;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.5);
             border-radius: 10px;
-            color: white;
+            color: #c7d2fe;
             font-size: 1em;
-        }
-        button {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            border: none;
-            border-radius: 10px;
-            color: white;
             font-weight: 600;
             cursor: pointer;
-            margin: 5px;
+            text-decoration: none;
+            transition: all 0.3s;
         }
-        #messages { max-height: 300px; overflow-y: auto; }
-        .msg { padding: 8px; margin: 5px 0; background: rgba(255,255,255,0.05); border-radius: 8px; }
-        .footer { text-align: center; padding: 40px; color: #475569; border-top: 1px solid rgba(99,102,241,0.1); margin-top: 60px; }
+
+        .nav-btn:hover {
+            background: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: calc(100vh - 80px);
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: 3.5em;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #e0e0e0, #ffffff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+
+        .subtitle { font-size: 1.3em; color: #94a3b8; margin-bottom: 15px; }
+        .description { font-size: 1.1em; color: #64748b; max-width: 700px; margin-bottom: 50px; line-height: 1.6; }
+
+        .cta-btn {
+            padding: 16px 40px;
+            font-size: 1.2em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+            letter-spacing: 1px;
+        }
+
+        .cta-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(99, 102, 241, 0.6); }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 1000px;
+            margin: 60px auto 0;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 20px;
+            padding: 35px 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.3); transform: translateY(-5px); }
+        .feature-icon { font-size: 3em; margin-bottom: 20px; }
+        .feature-card h3 { color: #c7d2fe; margin-bottom: 12px; font-size: 1.3em; }
+        .feature-card p { color: #64748b; font-size: 0.95em; line-height: 1.5; }
+
+        .footer { text-align: center; padding: 30px; color: #475569; font-size: 0.9em; position: relative; z-index: 1; }
     </style>
 </head>
 <body>
-    <!-- Навбар (всегда виден) -->
+    <div class="bg-image"></div>
+    <div class="overlay"></div>
+
     <nav class="navbar">
-        <a href="/" class="logo">Hilbert Space</a>
-        <div class="nav-links">
-            <a href="/resources">📚 Ресурсы</a>
-            <span id="nav-login"><a href="/login" class="btn-sm btn-outline">Войти</a></span>
-            <span id="nav-balance" style="display:none">
-                <span class="balance-item omega">Ω <span id="omega-balance">0</span></span>
-                <span class="balance-item kappa">ϰ <span id="kappa-balance">0</span></span>
-            </span>
-        </div>
+        <div class="logo">UAC</div>
+        <a href="/login" class="nav-btn">Войти</a>
     </nav>
 
-    <!-- Главная (до входа) -->
-    <div id="landing">
-        <div class="container">
-            <div class="hero">
-                <h1>Hilbert Space</h1>
-                <p class="subtitle">Бесконечномерное пространство знаний</p>
-                <p class="description">
-                    Решай задачи, зарабатывай Ω Омега-газ и ϰ Каппа-газ, сражайся на арене.
-                </p>
-                <a href="/register" class="btn-sm btn-primary" style="padding:14px 32px;font-size:1.1em;">🚀 Начать путь</a>
+    <div class="hero">
+        <h1>Universal Academic Community</h1>
+        <p class="subtitle">Пространство знаний без границ</p>
+        <p class="description">
+            Исследуй математику, физику, логику. Зарабатывай Омега-газ и Каппа-газ. Сражайся на арене.
+        </p>
+        <a href="/register" class="cta-btn">🚀 Начать путь</a>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>Задачи</h3>
+                <p>От квантовой механики до математики</p>
             </div>
-
-            <div class="features">
-                <div class="card">
-                    <div class="icon">🧠</div>
-                    <h3>Задачи</h3>
-                    <p>От математики до квантовой физики. Зарабатывай Ω и редкий ϰ.</p>
-                </div>
-                <div class="card">
-                    <div class="icon">💬</div>
-                    <h3>Чат</h3>
-                    <p>Общайся с другими исследователями в реальном времени.</p>
-                </div>
-                <div class="card">
-                    <div class="icon">📝</div>
-                    <h3>Форум</h3>
-                    <p>Обсуждай теории и находи единомышленников.</p>
-                </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚔️</div>
+                <h3>Арена</h3>
+                <p>Сражайся с другими</p>
             </div>
-
-            <div class="footer"><p>Hilbert Space © 2024</p></div>
-        </div>
-    </div>
-
-    <!-- Контент после входа -->
-    <div id="content">
-        <div class="container">
-            <div class="grid">
-                <div class="card">
-                    <h2>📋 Задачи</h2>
-                    <div id="tasks"></div>
-                </div>
-
-                <div class="card">
-                    <h2>💬 Чат</h2>
-                    <div id="messages"></div>
-                    <input id="msg" placeholder="Сообщение...">
-                    <button onclick="sendMsg()">Отправить</button>
-                </div>
-
-                <div class="card" style="grid-column: 1/-1">
-                    <h2>📝 Форум</h2>
-                    <textarea id="post" placeholder="Поделитесь мыслью..."></textarea>
-                    <button onclick="createPost()">Опубликовать</button>
-                    <div id="forum"></div>
-                </div>
+            <div class="feature-card">
+                <div class="feature-icon">💬</div>
+                <h3>Сообщество</h3>
+                <p>Форум и чат</p>
             </div>
         </div>
     </div>
 
-    <script>
-        let token = localStorage.getItem('token');
-        const socket = io();
-
-        function updateNav() {
-            if (token) {
-                document.getElementById('nav-login').style.display = 'none';
-                document.getElementById('nav-balance').style.display = 'inline';
-                document.getElementById('landing').style.display = 'none';
-                document.getElementById('content').style.display = 'block';
-                loadBalance();
-                loadTasks();
-                loadForum();
-            } else {
-                document.getElementById('nav-login').style.display = 'inline';
-                document.getElementById('nav-balance').style.display = 'none';
-                document.getElementById('landing').style.display = 'block';
-                document.getElementById('content').style.display = 'none';
-            }
-        }
-
-        function loadBalance() {
-            fetch('/api/balance', {headers: {'Authorization': `Bearer ${token}`}})
-                .then(r => r.json()).then(d => {
-                    document.getElementById('omega-balance').textContent = d.omega;
-                    document.getElementById('kappa-balance').textContent = d.kappa;
-                });
-        }
-
-        function loadTasks() {
-            fetch('/api/tasks', {headers: {'Authorization': `Bearer ${token}`}})
-                .then(r => r.json()).then(tasks => {
-                    document.getElementById('tasks').innerHTML = tasks.map(t => `
-                        <div style="margin:10px 0;padding:15px;background:rgba(255,255,255,0.05);border-radius:10px">
-                            <b>${t.title}</b> (${t.difficulty})
-                            <p>${t.description}</p>
-                            <small>Ω${t.reward_omega} ϰ${t.reward_kappa}</small>
-                            <input id="a${t.id}" placeholder="Ответ">
-                            <button onclick="check(${t.id})">Ответить</button>
-                        </div>
-                    `).join('');
-                });
-        }
-
-        function check(id) {
-            fetch('/api/tasks/check', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
-                body: JSON.stringify({taskId: id, answer: document.getElementById('a'+id).value})
-            }).then(r => r.json()).then(d => {
-                alert(d.correct ? '✅ Правильно!' : '❌ Неправильно');
-                if (d.correct) loadBalance();
-            });
-        }
-
-        function sendMsg() {
-            socket.emit('chat', {token, message: document.getElementById('msg').value});
-            document.getElementById('msg').value = '';
-        }
-
-        function createPost() {
-            fetch('/api/forum', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
-                body: JSON.stringify({content: document.getElementById('post').value})
-            }).then(() => { document.getElementById('post').value = ''; loadForum(); });
-        }
-
-        function loadForum() {
-            fetch('/api/forum', {headers: {'Authorization': `Bearer ${token}`}})
-                .then(r => r.json()).then(posts => {
-                    document.getElementById('forum').innerHTML = posts.map(p => `
-                        <div style="margin:5px 0;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px">
-                            <b>${p.username}</b>: ${p.content}
-                        </div>
-                    `).join('');
-                });
-        }
-
-        socket.on('chat', d => {
-            const div = document.getElementById('messages');
-            div.innerHTML += `<div class="msg"><b>${d.username}</b>: ${d.message}</div>`;
-            div.scrollTop = div.scrollHeight;
-        });
-
-        socket.on('notification', d => alert(d.message));
-        socket.on('new_post', () => loadForum());
-
-        updateNav();
-    </script>
+    <div class="footer">UAC © 2024 — Universal Academic Community</div>
 </body>
 </html>
