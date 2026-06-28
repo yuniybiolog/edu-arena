@@ -64,3 +64,7 @@ window.location.href = '/app';
     self.send_header('Content-Type', 'text/html; charset=utf-8')
     self.end_headers()
     self.wfile.write(html.encode())
+
+PORT = int(os.environ.get('PORT', 3000))
+server = HTTPServer(('0.0.0.0', PORT), Handler)
+server.serve_forever()
