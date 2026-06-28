@@ -21,7 +21,7 @@ def get_db():
         host=os.environ.get('PGHOST', 'localhost'),
         database=os.environ.get('PGDATABASE', 'hilbert'),
         user=os.environ.get('PGUSER', 'ahror'),
-        password=os.environ.get('PGPASSWORD', ''),
+        password=os.environ.get('PGPASSWORD', 'MQnUKPZ0TAObOOtpoI4UwwHTqLHCioW4'),
         port=os.environ.get('PGPORT', '5432')
     )
 
