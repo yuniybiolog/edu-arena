@@ -267,3 +267,8 @@ class Handler(BaseHTTPRequestHandler):
 
         else:
             self.send_error(404)
+
+PORT = int(os.environ.get('PORT', 3000))
+server = HTTPServer(('0.0.0.0', PORT), Handler)
+print(f'🧠 Hilbert Space запущен на порту {PORT}')
+server.serve_forever()
