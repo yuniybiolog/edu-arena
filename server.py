@@ -10,7 +10,7 @@ from urllib.parse import urlparse, parse_qs
 
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
-GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'https://hilbert-space.onrender.com/oauth/google/callback')
+GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', '')
 
 def get_db():
     db_url = os.environ.get('DATABASE_URL')
@@ -83,12 +83,18 @@ class Handler(BaseHTTPRequestHandler):
             self.send_file('public/register.html', 'text/html')
         elif path == '/login':
             self.send_file('public/login.html', 'text/html')
+        elif path == '/forgot':
+            self.send_file('public/forgot.html', 'text/html')
         elif path == '/app':
             self.send_file('public/app.html', 'text/html')
         elif path == '/back.jpg':
             self.send_file('public/back.jpg', 'image/jpeg')
         elif path == '/oauth/google/callback':
             self.handle_google_callback()
+        elif path == '/api/tasks':
+            self.send_tasks()
+        elif path == '/api/forum':
+            self.send_forum()
         else:
             self.send_error(404)
 
@@ -98,43 +104,55 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
 
         if path == '/api/register':
-            username = body.get('username', '')
-            password = hashlib.sha256(body.get('password', '').encode()).hexdigest()
-            name = body.get('name', username)
-            email = body.get('email', '')
-            age = body.get('age')
-
-            db = get_db()
-            cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            try:
-                cur.execute('INSERT INTO users (username, password, name, email, age) VALUES (%s, %s, %s, %s, %s) RETURNING id, omega, kappa',
-                            (username, password, name, email, age))
-                user = cur.fetchone()
-                db.commit()
-                self.send_json({'token': str(user['id']), 'omega': user['omega'], 'kappa': user['kappa']})
-            except psycopg2.errors.UniqueViolation:
-                db.rollback()
-                self.send_json({'error': 'Пользователь уже существует'})
-            cur.close(); db.close()
-
+            self.handle_register(body)
         elif path == '/api/login':
-            username = body.get('username', '')
-            password = hashlib.sha256(body.get('password', '').encode()).hexdigest()
-
-            db = get_db()
-            cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute('SELECT id, omega, kappa, rating FROM users WHERE username = %s AND password = %s',
-                        (username, password))
-            user = cur.fetchone()
-            cur.close(); db.close()
-
-            if user:
-                self.send_json({'token': str(user['id']), 'omega': user['omega'], 'kappa': user['kappa'], 'rating': user['rating']})
-            else:
-                self.send_json({'error': 'Неверный логин или пароль'})
-
+            self.handle_login(body)
+        elif path == '/api/tasks/check':
+            self.handle_task_check(body)
+        elif path == '/api/forum':
+            self.handle_forum_post(body)
         else:
             self.send_error(404)
+
+    def handle_register(self, body):
+        username = body.get('username', '')
+        password = hashlib.sha256(body.get('password', '').encode()).hexdigest() if body.get('password') else None
+        name = body.get('name', username)
+        email = body.get('email', '')
+        age = body.get('age')
+
+        db = get_db()
+        cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            cur.execute(
+                'INSERT INTO users (username, password, name, email, age) VALUES (%s, %s, %s, %s, %s) RETURNING id, omega, kappa',
+                (username, password, name, email, age))
+            user = cur.fetchone()
+            db.commit()
+            self.send_json({'token': str(user['id']), 'omega': user['omega'], 'kappa': user['kappa']})
+        except psycopg2.errors.UniqueViolation:
+            db.rollback()
+            self.send_json({'error': 'Пользователь уже существует'})
+        cur.close()
+        db.close()
+
+    def handle_login(self, body):
+        username = body.get('username', '')
+        password = hashlib.sha256(body.get('password', '').encode()).hexdigest()
+
+        db = get_db()
+        cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            'SELECT id, omega, kappa, rating FROM users WHERE username = %s AND password = %s',
+            (username, password))
+        user = cur.fetchone()
+        cur.close()
+        db.close()
+
+        if user:
+            self.send_json({'token': str(user['id']), 'omega': user['omega'], 'kappa': user['kappa'], 'rating': user['rating']})
+        else:
+            self.send_json({'error': 'Неверный логин или пароль'})
 
     def handle_google_callback(self):
         query = parse_qs(urlparse(self.path).query)
@@ -185,11 +203,68 @@ class Handler(BaseHTTPRequestHandler):
             user = cur.fetchone()
             db.commit()
 
-        cur.close(); db.close()
+        cur.close()
+        db.close()
 
         self.send_response(302)
         self.send_header('Location', f'/app?token={user["id"]}')
         self.end_headers()
+
+    def send_tasks(self):
+        db = get_db()
+        cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute('SELECT * FROM tasks ORDER BY id DESC')
+        tasks = cur.fetchall()
+        cur.close()
+        db.close()
+        self.send_json(tasks)
+
+    def send_forum(self):
+        db = get_db()
+        cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""
+            SELECT fp.id, fp.content, fp.created_at, u.username
+            FROM forum_posts fp JOIN users u ON fp.user_id = u.id
+            ORDER BY fp.created_at DESC LIMIT 50
+        """)
+        posts = cur.fetchall()
+        cur.close()
+        db.close()
+        self.send_json(posts)
+
+    def handle_task_check(self, body):
+        task_id = body.get('taskId')
+        answer = body.get('answer', '')
+        token = body.get('token', '')
+
+        db = get_db()
+        cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute('SELECT * FROM tasks WHERE id = %s', (task_id,))
+        task = cur.fetchone()
+
+        if task and task['answer'].strip().lower() == answer.strip().lower():
+            cur.execute(
+                'UPDATE users SET omega = omega + %s, kappa = kappa + %s, rating = rating + 10 WHERE id = %s RETURNING omega, kappa',
+                (task['reward_omega'], task['reward_kappa'], int(token)))
+            user = cur.fetchone()
+            db.commit()
+            self.send_json({'correct': True, 'omega': user['omega'], 'kappa': user['kappa']})
+        else:
+            self.send_json({'correct': False})
+        cur.close()
+        db.close()
+
+    def handle_forum_post(self, body):
+        token = body.get('token', '')
+        content = body.get('content', '')
+
+        db = get_db()
+        cur = db.cursor()
+        cur.execute('INSERT INTO forum_posts (user_id, content) VALUES (%s, %s)', (int(token), content))
+        db.commit()
+        cur.close()
+        db.close()
+        self.send_json({'success': True})
 
     def send_file(self, filepath, content_type):
         try:
