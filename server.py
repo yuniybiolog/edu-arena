@@ -9,12 +9,19 @@ from urllib.parse import urlparse
 
 
 
+
 def get_db():
+    # Если есть DATABASE_URL — используем его
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url:
+        return psycopg2.connect(db_url)
+
+    # Иначе собираем из отдельных переменных (для локальной разработки)
     return psycopg2.connect(
         host=os.environ.get('PGHOST', 'localhost'),
         database=os.environ.get('PGDATABASE', 'hilbert'),
         user=os.environ.get('PGUSER', 'ahror'),
-        password=os.environ.get('PGPASSWORD', 'твой_пароль'),
+        password=os.environ.get('PGPASSWORD', ''),
         port=os.environ.get('PGPORT', '5432')
     )
 
